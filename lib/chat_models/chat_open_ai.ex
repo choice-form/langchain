@@ -199,6 +199,9 @@ defmodule LangChain.ChatModels.ChatOpenAI do
   @primary_key false
   embedded_schema do
     field :endpoint, :string, default: "https://api.openai.com/v1/chat/completions"
+
+    field :headers, :map, default: %{}
+
     # field :model, :string, default: "gpt-4"
     field :model, :string, default: "gpt-3.5-turbo"
     # API key for OpenAI. If not set, will use global api key. Allows for usage
@@ -267,6 +270,7 @@ defmodule LangChain.ChatModels.ChatOpenAI do
 
   @create_fields [
     :endpoint,
+    :headers,
     :model,
     :temperature,
     :frequency_penalty,
@@ -311,6 +315,7 @@ defmodule LangChain.ChatModels.ChatOpenAI do
     %ChatOpenAI{}
     |> cast(attrs, @create_fields)
     |> common_validation()
+    |> downcase_headers()
     |> apply_action(:insert)
   end
 
@@ -326,6 +331,21 @@ defmodule LangChain.ChatModels.ChatOpenAI do
       {:error, changeset} ->
         raise LangChainError, changeset
     end
+  end
+
+  defp downcase_headers(%Ecto.Changeset{valid?: false} = changeset) do
+    changeset
+  end
+
+  defp downcase_headers(changeset) do
+    headers =
+      changeset
+      |> get_field(:headers)
+      |> Map.new(fn {name, value} ->
+        {String.downcase(name), value}
+      end)
+
+    put_change(changeset, :headers, headers)
   end
 
   defp common_validation(changeset) do
@@ -725,9 +745,12 @@ defmodule LangChain.ChatModels.ChatOpenAI do
         # required for OpenAI API
         auth: {:bearer, get_api_key(openai)},
         # required for Azure OpenAI version
-        headers: [
-          {"api-key", get_api_key(openai)}
-        ],
+        headers:
+          Map.put_new(
+            openai.headers,
+            "api-key",
+            get_api_key(openai)
+          ),
         receive_timeout: openai.receive_timeout,
         retry: :transient,
         max_retries: 3,
@@ -800,9 +823,12 @@ defmodule LangChain.ChatModels.ChatOpenAI do
       # required for OpenAI API
       auth: {:bearer, get_api_key(openai)},
       # required for Azure OpenAI version
-      headers: [
-        {"api-key", get_api_key(openai)}
-      ],
+      headers:
+        Map.put_new(
+          openai.headers,
+          "api-key",
+          get_api_key(openai)
+        ),
       receive_timeout: openai.receive_timeout
     )
     |> maybe_add_org_id_header()
