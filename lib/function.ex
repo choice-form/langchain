@@ -213,6 +213,10 @@ defmodule LangChain.Function do
     field :parameters, {:array, :any}, default: []
 
     field :options, :any, virtual: true, default: []
+
+    # Unlike :options, :metadata does not affect LLM behaviour.
+    # It only provides the library users to stuff anything they want.
+    field :metadata, :any, virtual: true, default: nil
   end
 
   @type t :: %Function{}
@@ -228,7 +232,8 @@ defmodule LangChain.Function do
     :parameters,
     :function,
     :async,
-    :options
+    :options,
+    :metadata
   ]
   @required_fields [:name]
 

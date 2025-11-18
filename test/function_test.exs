@@ -37,6 +37,17 @@ defmodule LangChain.FunctionTest do
       assert fun.async == false
     end
 
+    test "allows for storing arbitrary metadata" do
+      assert {:ok, %Function{} = fun} =
+               Function.new(%{
+                 "name" => "hello_world",
+                 "function" => &hello_world/2,
+                 "metadata" => :foo
+               })
+
+      assert fun.metadata == :foo
+    end
+
     test "returns error when invalid" do
       assert {:error, changeset} = Function.new(%{"name" => nil})
       refute changeset.valid?
